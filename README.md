@@ -27,56 +27,63 @@ This repository provides Docker images for running [Taiga](https://www.taiga.io/
 ## Installation
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/nvlbpro/taiga-rpi-arm64.git
    cd taiga-rpi-arm64
    ```
 
 2. **Edit the `.env` file** in the cloned directory to customize the following variables (ensure secure values for sensitive fields):
-   ```env
-   # Taiga's URLs
-   TAIGA_SCHEME=http  # Use "http" or "https"
-   TAIGA_DOMAIN=localhost:9000  # Taiga's base URL
-   SUBPATH=""  # Use "" or "/subpath"
-   WEBSOCKETS_SCHEME=ws  # Use "ws" or "wss"
 
-   # Taiga's Secret Key
-   SECRET_KEY="taiga-secret-key"  # Change to a secure, unpredictable value
+```env
 
-   # Database settings
-   POSTGRES_USER=taiga
-   POSTGRES_PASSWORD=taiga  # Change to a secure password
+# Taiga's URLs - Variables to define where Taiga should be served
+TAIGA_SCHEME=http  # serve Taiga using "http" or "https" (secured) connection
+TAIGA_DOMAIN=localhost:9000  # Taiga's base URL
+SUBPATH="" # it'll be appended to the TAIGA_DOMAIN (use either "" or a "/subpath")
+WEBSOCKETS_SCHEME=ws  # events connection protocol (use either "ws" or "wss")
 
-   # SMTP settings
-   EMAIL_BACKEND=console  # Use "smtp" or "console"
-   EMAIL_HOST=smtp.host.example.com
-   EMAIL_PORT=587
-   EMAIL_HOST_USER=user
-   EMAIL_HOST_PASSWORD=password
-   EMAIL_DEFAULT_FROM=changeme@example.com
-   EMAIL_USE_TLS=True
-   EMAIL_USE_SSL=False
+# Taiga's Secret Key - Variable to provide cryptographic signing
+SECRET_KEY="taiga-secret-key"  # Please, change it to an unpredictable value!!
 
-   # RabbitMQ settings
-   RABBITMQ_USER=taiga
-   RABBITMQ_PASS=taiga  # Change to a secure password
-   RABBITMQ_VHOST=taiga
-   RABBITMQ_ERLANG_COOKIE=secret-erlang-cookie  # Change to a secure value
+# Taiga's Database settings - Variables to create the Taiga database and connect to it
+POSTGRES_USER=taiga  # user to connect to PostgreSQL
+POSTGRES_PASSWORD=taiga  # database user's password
 
-   # Attachments
-   ATTACHMENTS_MAX_AGE=360  # Token expiration (seconds)
+# Taiga's SMTP settings - Variables to send Taiga's emails to the users
+EMAIL_BACKEND=console  # use an SMTP server or display the emails in the console (either "smtp" or "console")
+EMAIL_HOST=smtp.host.example.com  # SMTP server address
+EMAIL_PORT=587   # default SMTP port
+EMAIL_HOST_USER=user  # user to connect the SMTP server
+EMAIL_HOST_PASSWORD=password  # SMTP user's password
+EMAIL_DEFAULT_FROM=changeme@example.com  # default email address for the automated emails
+# EMAIL_USE_TLS/EMAIL_USE_SSL are mutually exclusive (only set one of those to True)
+EMAIL_USE_TLS=True  # use TLS (secure) connection with the SMTP server
+EMAIL_USE_SSL=False  # use implicit TLS (secure) connection with the SMTP server
 
-   # Telemetry
-   ENABLE_TELEMETRY=True
-   ```
-   **Security Note**: The provided `.env` file is a template. Always replace default values for `SECRET_KEY`, `POSTGRES_PASSWORD`, `RABBITMQ_PASS`, and `RABBITMQ_ERLANG_COOKIE` with secure, unique values to prevent vulnerabilities.
+# Taiga's RabbitMQ settings - Variables to leave messages for the realtime and asynchronous events
+RABBITMQ_USER=taiga  # user to connect to RabbitMQ
+RABBITMQ_PASS=taiga  # RabbitMQ user's password
+RABBITMQ_VHOST=taiga  # RabbitMQ container name
+RABBITMQ_ERLANG_COOKIE=secret-erlang-cookie  # unique value shared by any connected instance of RabbitMQ
+
+# Taiga's Attachments - Variable to define how long the attachments will be accesible
+ATTACHMENTS_MAX_AGE=360  # token expiration date (in seconds)
+
+# Taiga's Telemetry - Variable to enable or disable the anonymous telemetry
+ENABLE_TELEMETRY=True
+```
+
+**Security Note**: The provided `.env` file is a template. Always replace default values for `SECRET_KEY`, `POSTGRES_PASSWORD`, `RABBITMQ_PASS`, and `RABBITMQ_ERLANG_COOKIE` with secure, unique values to prevent vulnerabilities.
 
 3. **Start Taiga**:
+
    ```bash
    ./launch-taiga.sh
    ```
 
 4. **Create an admin user**:
+
    ```bash
    ./taiga-manage.sh createsuperuser
    ```
@@ -92,7 +99,9 @@ This repository provides Docker images for running [Taiga](https://www.taiga.io/
 - **WebSocket**: Real-time events (`taiga-events`) are proxied internally by `taiga-gateway`. No external port (e.g., 8888) needs to be opened.
 
 ### Example NGINX Configuration
+
 This configuration enables HTTPS and proxies requests to `taiga-gateway`:
+
 ```nginx
 server {
     listen 443 ssl;
@@ -111,7 +120,9 @@ server {
 ```
 
 ### Example Apache Configuration
+
 For setups like AWS EC2, this Apache configuration proxies requests to `taiga-gateway` and redirects HTTP to HTTPS:
+
 ```apache
 <VirtualHost *:80>
     ServerName taiga.yourdomain.com
@@ -164,6 +175,7 @@ For setups like AWS EC2, this Apache configuration proxies requests to `taiga-ga
 ## Docker Images
 
 Available on [Docker Hub](https://hub.docker.com/r/nvlbpro/taiga-rpi-arm64):
+
 - `nvlbpro/taiga-rpi-arm64:*-stable`: Production-ready, tested images.
 - `nvlbpro/taiga-rpi-arm64:*-latest`: Latest builds, use with caution.
 
@@ -174,6 +186,7 @@ Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) fi
 ## Support
 
 For questions, issues, or feedback:
+
 - Open an issue on [GitHub](https://github.com/nvlbpro/taiga-rpi-arm64/issues).
 - Contact me via [LinkedIn](https://www.linkedin.com/in/nvlbpro) or email (contact@nvlb.fr).
 
