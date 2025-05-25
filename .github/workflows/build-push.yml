@@ -1,0 +1,175 @@
+name: Build and Push Taiga ARM64 Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-taiga-back-and-async:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('taiga-back/requirements.txt') }}
+      - name: Build taiga-back and taiga-async
+        run: |
+          git clone --depth 1 --branch main https://github.com/taigaio/taiga-back.git
+          cd taiga-back
+          docker buildx build --platform linux/arm64 -t nvlbpro/taiga-rpi-arm64:back-latest -f docker/Dockerfile . --load --cache-from=nvlbpro/taiga-rpi-arm64:back-latest
+          docker buildx build --platform linux/arm64 -t nvlbpro/taiga-rpi-arm64:async-latest -f docker/Dockerfile . --load --cache-from=nvlbpro/taiga-rpi-arm64:back-latest
+          cd ..
+
+  build-taiga-front:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build taiga-front
+        run: |
+          git clone --depth 1 --branch main https://github.com/taigaio/taiga-front.git
+          cd taiga-front
+          docker buildx build --platform linux/arm64 -t nvlbpro/taiga-rpi-arm64:front-latest -f docker/Dockerfile . --load
+          cd ..
+
+  build-taiga-events:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build taiga-events
+        run: |
+          git clone --depth 1 --branch main https://github.com/taigaio/taiga-events.git
+          cd taiga-events
+          docker buildx build --platform linux/arm64 -t nvlbpro/taiga-rpi-arm64:events-latest -f docker/Dockerfile . --load
+          cd ..
+
+  build-taiga-protected:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build taiga-protected
+        run: |
+          git clone --depth 1 --branch main https://github.com/taigaio/taiga-protected.git
+          cd taiga-protected
+          docker buildx build --platform linux/arm64 -t nvlbpro/taiga-rpi-arm64:protected-latest -f docker/Dockerfile . --load
+          cd ..
+
+  test-and-push:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        build-taiga-back-and-async,
+        build-taiga-front,
+        build-taiga-events,
+        build-taiga-protected,
+      ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Create .env file for testing
+        run: |
+          cat <<EOF > .env
+          TAIGA_SCHEME=http
+          TAIGA_DOMAIN=localhost:9000
+          SUBPATH=""
+          WEBSOCKETS_SCHEME=ws
+          SECRET_KEY="test-secret-key"
+          POSTGRES_USER=taiga
+          POSTGRES_PASSWORD=taiga
+          EMAIL_BACKEND=console
+          EMAIL_HOST=smtp.example.com
+          EMAIL_PORT=587
+          EMAIL_HOST_USER=user
+          EMAIL_HOST_PASSWORD=password
+          EMAIL_DEFAULT_FROM=taiga@example.com
+          EMAIL_USE_TLS=True
+          EMAIL_USE_SSL=False
+          RABBITMQ_USER=taiga
+          RABBITMQ_PASS=taiga
+          RABBITMQ_VHOST=taiga
+          RABBITMQ_ERLANG_COOKIE=secret-erlang-cookie
+          ATTACHMENTS_MAX_AGE=360
+          ENABLE_TELEMETRY=False
+          EOF
+      - name: Start taiga-db
+        run: |
+          docker compose -f docker-compose.yml up -d taiga-db
+          sleep 10
+          docker compose -f docker-compose.yml ps taiga-db | grep "healthy" || exit 1
+      - name: Apply migrations
+        run: |
+          chmod +x taiga-manage.sh
+          ./taiga-manage.sh migrate
+      - name: Test launch-taiga.sh
+        run: |
+          chmod +x launch-taiga.sh
+          ./launch-taiga.sh
+          sleep 10
+          docker ps --format '{{.Names}}' | grep -E 'taiga-rpi-arm64-taiga-(db|back|async|front|events|protected|gateway|async-rabbitmq|events-rabbitmq)-1' | wc -l | grep -q 9
+          curl -s http://localhost:9000 > /dev/null || exit 1
+      - name: Push images to Docker Hub
+        run: |
+          docker push nvlbpro/taiga-rpi-arm64:back-latest
+          docker push nvlbpro/taiga-rpi-arm64:async-latest
+          docker push nvlbpro/taiga-rpi-arm64:front-latest
+          docker push nvlbpro/taiga-rpi-arm64:events-latest
+          docker push nvlbpro/taiga-rpi-arm64:protected-latest
