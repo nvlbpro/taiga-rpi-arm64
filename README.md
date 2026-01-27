@@ -74,7 +74,11 @@ ATTACHMENTS_MAX_AGE=360  # token expiration date (in seconds)
 ENABLE_TELEMETRY=True
 ```
 
-**Security Note**: The provided `.env` file is a template. Always replace default values for `SECRET_KEY`, `POSTGRES_PASSWORD`, `RABBITMQ_PASS`, and `RABBITMQ_ERLANG_COOKIE` with secure, unique values to prevent vulnerabilities.
+**Security Notes**:
+
+- The provided `.env` file is a template. Always replace default values for `SECRET_KEY`, `POSTGRES_PASSWORD`, `RABBITMQ_PASS`, and `RABBITMQ_ERLANG_COOKIE` with secure, unique values to prevent vulnerabilities.
+- Never use the example passwords in production. They are intentionally weak and only meant for testing.
+- ⚠️ RABBITMQ_PASS should avoid special characters like %, @, :, /, $, !, # as they may cause authentication issues in some Docker setups.
 
 3. **Start Taiga**:
 
