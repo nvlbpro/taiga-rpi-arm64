@@ -183,4 +183,11 @@ jobs:
           ./launch-taiga.sh
           sleep 10
           docker ps --format '{{.Names}}' | grep -E 'taiga-rpi-arm64-taiga-(db|back|async|front|events|protected|gateway|async-rabbitmq|events-rabbitmq)-1' | wc -l | grep -q 9
-          curl -s http://loc
+          curl -s http://localhost:9000 > /dev/null || exit 1
+      - name: Push images to Docker Hub
+        run: |
+          docker push nvlbpro/taiga-rpi-arm64:back-latest
+          docker push nvlbpro/taiga-rpi-arm64:async-latest
+          docker push nvlbpro/taiga-rpi-arm64:front-latest
+          docker push nvlbpro/taiga-rpi-arm64:events-latest
+          docker push nvlbpro/taiga-rpi-arm64:protected-latest
