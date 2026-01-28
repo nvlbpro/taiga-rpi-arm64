@@ -134,13 +134,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Pull CI images
-        run: |
-          docker pull $REPO:back-${VERSION}-ci
-          docker pull $REPO:async-${VERSION}-ci
-          docker pull $REPO:front-${VERSION}-ci
-          docker pull $REPO:events-${VERSION}-ci
-          docker pull $REPO:protected-${VERSION}-ci
+      - name: Pull CI images (ARM64)
+       run: |
+         docker pull --platform=linux/arm64 $REPO:back-${VERSION}-ci
+         docker pull --platform=linux/arm64 $REPO:async-${VERSION}-ci
+         docker pull --platform=linux/arm64 $REPO:front-${VERSION}-ci
+         docker pull --platform=linux/arm64 $REPO:events-${VERSION}-ci
+         docker pull --platform=linux/arm64 $REPO:protected-${VERSION}-ci
 
       - name: Retag as latest
         run: |
